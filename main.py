@@ -21,9 +21,21 @@ class Node:
     def __lt__(self, other):
         return other;
 
-test_puzzle = [[1, 2, 3],
-                [4, 8, 5]
-                ,[7, 0, 6]];
+i_puzzle = [[8, 1, 2],
+                [0, 4, 3]
+                ,[7, 6, 5]];
+
+easy_puzzle = [[1, 2, 3],
+                [4, 5, 0]
+                ,[7, 8, 6]];
+
+simple_puzzle = [[0, 1, 2],
+                [4, 5, 3]
+                ,[7, 8, 6]];\
+
+tough_puzzle = [[8, 7, 1],
+                [6, 0, 2]
+                ,[5, 4, 3]];
 
 goal_state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]];
 
@@ -96,11 +108,11 @@ def checkPuzzleEqual(a, b):
                 return False;
     return True;
 
-# def checkFrontier(childNode, frontier):
-#     for node in frontier:
-#         if node.puzzle == childNode.puzzle:
-#             return True;  
-#     return False; 
+def checkFrontier(childNode, frontier):
+    for node in frontier.queue:
+        if checkPuzzleEqual(node[1].puzzle, childNode.puzzle):
+            return True;  
+    return False; 
 
 def getFrontier(childNode, frontier):
     for node in frontier.queue:
@@ -108,11 +120,17 @@ def getFrontier(childNode, frontier):
             return node[1];  
     return False; 
 
-# def checkExplored(childNode, explored):
-#     for node in explored:
-#         if node.puzzle == childNode.puzzle:
-#             return True;  
-#     return False; 
+def swapFrontierNode(childNode, frontier, newNode):
+    for node in frontier.queue:
+        if checkPuzzleEqual(node[1].puzzle, childNode.puzzle):
+            node = (newNode.g + newNode.h ,newNode);  
+
+
+def checkExplored(childNode, explored):
+    for node in explored:
+        if checkPuzzleEqual(node.puzzle, childNode.puzzle):
+            return True;  
+    return False; 
 
 def getExplored(childNode, explored):
     for node in explored:
@@ -120,11 +138,20 @@ def getExplored(childNode, explored):
             return node;  
     return False;    
 
-def Uniform_Cost_Search(puzzle): 
+def Uniform_Cost_Search(puzzle, search): 
     
-    print("Using UCS to solve the 8-Puzzle");
+    if (search == 'UCS'):
+        print("Using UCS to solve the 8-Puzzle");
+        h = 0;
+    elif(search == 'AMT'):
+        print("Using AMT to solve the 8-Puzzle");
+        h = missingTime(puzzle);
+    elif(search == 'AMD'):
+        print("Using AMD to solve the 8-Puzzle");
+        h = manhattanDistance(puzzle);
+
     frontier = PriorityQueue(); 
-    node = Node(0, 0, puzzle);
+    node = Node(h, 0, puzzle);
     frontier.put((0, node));
     explored = []; 
     
@@ -134,25 +161,40 @@ def Uniform_Cost_Search(puzzle):
         explored.append(node);
         
         if (checkGoalState(node.puzzle)):
+            print("Solution found!");
             return True, node;
         else:
             for action in actions:
-                #print(action);
-                #print("Before transform: ");
-                #printPuzzle(node.puzzle);
+                print(action);
+                
+                print("Before transform: ");
+                printPuzzle(node.puzzle);
+                
                 transformed_puzzle = transformPuzzle([x[:] for x in node.puzzle], action);
-                #print("After transform: ");
-                # if transformed_puzzle:
-                #     printPuzzle(transformed_puzzle);
-                if (transformed_puzzle):
-                    childNode = Node(0, node.g + 1, transformed_puzzle);
-                    if (not getFrontier(childNode, frontier) or not getExplored(childNode, explored)):
-                        print("Node not explored or frontier");
-                        frontier.put((node_prioty + 1, childNode));
-                    elif (getFrontier(childNode, frontier) and getFrontier(childNode, frontier).g < childNode.g):
-                        print("Frontier queue is not empty.")
-                        frontier.put((getFrontier(childNode, frontier).g, getFrontier(childNode, frontier)));
 
+                if transformed_puzzle:
+                    print("After transform: ");
+                    printPuzzle(transformed_puzzle);
+                else:
+                    print("ILLEGAL MOVE");
+
+                if (transformed_puzzle):
+
+                    if (search == 'UCS'):
+                        h = 0;
+                    elif(search == 'AMT'):
+                        h = missingTime(transformed_puzzle);
+                    elif(search == 'AMD'):
+                        h = manhattanDistance(transformed_puzzle);
+
+                    childNode = Node(h, node.g + 1, transformed_puzzle);
+                    if (not checkFrontier(childNode, frontier) or not checkExplored(childNode, explored)):
+                        print("Node not explored or frontier");
+                        frontier.put((childNode.g + childNode.h, childNode));
+                    elif (checkFrontier(childNode, frontier) and getFrontier(childNode, frontier).g > childNode.g):
+                        print("Frontier queue is not empty.")
+                        swapFrontierNode(getFrontier(childNode, frontier), frontier, childNode);
+    print("No Solution!");
 
 def printPuzzle(puzzle):
     print(str(puzzle[0][0]) + " " + str(puzzle[0][1]) + " " + str(puzzle[0][2]));
@@ -166,13 +208,15 @@ if (int(testing) == 1):
     print("Used for debugging");
     method = input("Which method to solve the 8-Puzzle will you use? (1 for UCS, 2 for A* MT, 3 for A* MD): ");
 
-    printPuzzle(test_puzzle);
+    #printPuzzle(s_puzzle);
 
     if (int(method) == 1): 
-        success, node = Uniform_Cost_Search(test_puzzle);
+        success, node = Uniform_Cost_Search(tough_puzzle);
     
-    print("Cost: " + str(node.g));
-    
+    if success:
+        print("Cost: " + str(node.g));
+    else:
+        print("Unsolvable!");
 
 else: 
     print("Input custom 8-PUzzle");
