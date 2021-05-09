@@ -4,7 +4,7 @@ class Node:
     def __init__(self, h, g, puzzle):
         self.h = h;
         self.g = g;
-        self.puzzle = puzzle;
+        self.puzzle = [x[:] for x in puzzle];
         self.parent = [];
         self.children = [];
         super().__init__();
@@ -14,20 +14,32 @@ class Node:
 
     def addChild(self, child):
         self.children.append(child); 
+    
+    def __eq__(self, other):
+        return other;
 
-test_puzzle = [[1, 2, 0],
-                [4, 5, 3]
-                ,[7, 8, 6]];
+    def __lt__(self, other):
+        return other;
+
+test_puzzle = [[1, 2, 3],
+                [4, 8, 5]
+                ,[7, 0, 6]];
 
 goal_state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]];
 
 actions = ['move_up', 'move_down', 'move_left', 'move_right'];
 
-def transformPuzzle(puzzle, action):
-    for i in puzzle:
-        for j in puzzle[i]:
+
+
+
+def transformPuzzle(puzzle_org, action):
+    puzzle = puzzle_org; 
+    for i in range(len(puzzle)):
+        for j in range(len(puzzle[i])):
             if puzzle[i][j] == 0:
                 zero = (i, j);
+
+
     if action == actions[0]:
         #Moving the missing tile up (zero tile)
         #Checking if it is a valid move, if not return false. 
@@ -72,34 +84,80 @@ def transformPuzzle(puzzle, action):
             return False; 
 
 def checkGoalState(puzzle):
-    if (goal_state == puzzle):
+    if (checkPuzzleEqual(puzzle, goal_state)):
         return True;
     else:
         return False;
 
+def checkPuzzleEqual(a, b):
+    for i in range(len(a)):
+        for j in range(len(a[i])):
+            if a[i][j] != b[i][j]:
+                return False;
+    return True;
+
+# def checkFrontier(childNode, frontier):
+#     for node in frontier:
+#         if node.puzzle == childNode.puzzle:
+#             return True;  
+#     return False; 
+
+def getFrontier(childNode, frontier):
+    for node in frontier.queue:
+        if checkPuzzleEqual(node[1].puzzle, childNode.puzzle):
+            return node[1];  
+    return False; 
+
+# def checkExplored(childNode, explored):
+#     for node in explored:
+#         if node.puzzle == childNode.puzzle:
+#             return True;  
+#     return False; 
+
+def getExplored(childNode, explored):
+    for node in explored:
+        if checkPuzzleEqual(node.puzzle, childNode.puzzle):
+            return node;  
+    return False;    
+
 def Uniform_Cost_Search(puzzle): 
+    
     print("Using UCS to solve the 8-Puzzle");
-    node = Node(0, 1, puzzle);
     frontier = PriorityQueue(); 
-    frontier.put(node.g, node);
+    node = Node(0, 0, puzzle);
+    frontier.put((0, node));
     explored = []; 
-
-    while (1):
-        if (frontier.qsize == 0):
-            return False; 
-        node = frontier.get(); 
-        explored.append[node];
+    
+    while (frontier.qsize != 0):
+    
+        node_prioty, node = frontier.get(); 
+        explored.append(node);
+        
         if (checkGoalState(node.puzzle)):
-            return True;
-        for action in actions:
-            puzzle = transformPuzzle(node.puzzle, action)
-            if (puzzle):
-                childNode = Node(0, 1, puzzle);
-                childNode.setParent(node);
-                node.addChild(childNode);
-                if (not checkFrontier(childNode, frontier) or not checkExplored(childNode, explored)):
-                    frontier.put(childNode.g, childNode);
+            return True, node;
+        else:
+            for action in actions:
+                #print(action);
+                #print("Before transform: ");
+                #printPuzzle(node.puzzle);
+                transformed_puzzle = transformPuzzle([x[:] for x in node.puzzle], action);
+                #print("After transform: ");
+                # if transformed_puzzle:
+                #     printPuzzle(transformed_puzzle);
+                if (transformed_puzzle):
+                    childNode = Node(0, node.g + 1, transformed_puzzle);
+                    if (not getFrontier(childNode, frontier) or not getExplored(childNode, explored)):
+                        print("Node not explored or frontier");
+                        frontier.put((node_prioty + 1, childNode));
+                    elif (getFrontier(childNode, frontier) and getFrontier(childNode, frontier).g < childNode.g):
+                        print("Frontier queue is not empty.")
+                        frontier.put((getFrontier(childNode, frontier).g, getFrontier(childNode, frontier)));
 
+
+def printPuzzle(puzzle):
+    print(str(puzzle[0][0]) + " " + str(puzzle[0][1]) + " " + str(puzzle[0][2]));
+    print(str(puzzle[1][0])+ " " + str(puzzle[1][1]) + " " + str(puzzle[1][2]));
+    print(str(puzzle[2][0]) + " " + str(puzzle[2][1]) + " " + str(puzzle[2][2]));
 
 
 print("8-Puzzle");
@@ -107,6 +165,14 @@ testing = input("Are you going to be using a test puzzle? (1 for Yes, 0 for No):
 if (int(testing) == 1): 
     print("Used for debugging");
     method = input("Which method to solve the 8-Puzzle will you use? (1 for UCS, 2 for A* MT, 3 for A* MD): ");
-    if (int(method) == 1): Uniform_Cost_Search(test_puzzle);
+
+    printPuzzle(test_puzzle);
+
+    if (int(method) == 1): 
+        success, node = Uniform_Cost_Search(test_puzzle);
+    
+    print("Cost: " + str(node.g));
+    
+
 else: 
     print("Input custom 8-PUzzle");
